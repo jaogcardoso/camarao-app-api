@@ -3,29 +3,42 @@ import { userService } from "../../services/user/userServices.js";
 import { authService } from "../../services/user/authServices.js";
 
 export const userController = {
-  async create(req: Request, res: Response): Promise<Response> {
-    try {
-      const user = await userService.createUser(req.body);
+async create(req: Request, res: Response): Promise<Response> {
+  try {
+    const { nome, email, senha, tenantId, empresaId } = req.body;
 
-      const { senha: _, ...userWithoutPassword } = user;
+    const user = await userService.createUser({
+      nome,
+      email,
+      senha,
+      tenantId,
+      empresaId,
+      role: "OPERADOR"
+    });
 
-      return res.status(201).json(userWithoutPassword);
-    } catch (error: any) {
-      return res.status(400).json({ message: error.message });
-    }
-  },
+    const { senha: _, ...userWithoutPassword } = user;
 
-  async login(req: Request, res: Response): Promise<Response> {
-    try {
-      const { email, senha } = req.body;
+    return res.status(201).json(userWithoutPassword);
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message });
+  }
+},
 
-      const { user, token } = await authService.authenticate(email, senha);
+async login(req: Request, res: Response): Promise<Response> {
+  try {
+    const { login, senha } = req.body;
 
-      const { senha: _, ...userWithoutPassword } = user;
+    const { user, token } = await authService.authenticate(login, senha);
 
-      return res.json({ user: userWithoutPassword, token });
-    } catch (error: any) {
-      return res.status(401).json({ message: error.message });
-    }
-  },
+    const { senha: _, ...userWithoutPassword } = user;
+
+    return res.json({
+      user: userWithoutPassword,
+      token
+    });
+
+  } catch (error: any) {
+    return res.status(401).json({ message: error.message });
+  }
+}
 };

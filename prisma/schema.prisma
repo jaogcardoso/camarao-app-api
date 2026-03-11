@@ -6,63 +6,160 @@ datasource db {
   provider = "postgresql"
 }
 
-model Usuario {
+model Tenant {
   id        String   @id @default(uuid())
   nome      String
-  email     String   @unique
-  senha     String
-  role      Role     @default(OPERADOR)
+  slug      String   @unique
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  empresas     Empresa[]
+  usuarios     Usuario[]
+  fornecedores Fornecedor[]
+  produtos     Produto[]
+}
+
+model Empresa {
+  id        String    @id @default(uuid())
+  tenantId  String
+  nome      String
+  cnpj      String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  usuarios     Usuario[]
+  fornecedores Fornecedor[]
+  produtos     Produto[]
+  viveiros     Viveiro[]
+
+  @@index([tenantId])
+}
+
+model Usuario {
+  id        String @id @default(uuid())
+  tenantId  String
+  empresaId String
+  nome      String
+  email     String
+  senha     String
+  role      Role   @default(OPERADOR)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  empresa Empresa @relation(fields: [empresaId], references: [id])
+
+  @@unique([email, tenantId])
+  @@index([empresaId])
 }
 
 model Fornecedor {
-  id       String        @id @default(uuid())
-  nome     String
-  contato  String?
-  telefone String?
-  ciclos   Ciclo[]
-  lotes    LoteEstoque[]
+  id        String  @id @default(uuid())
+  tenantId  String
+  empresaId String
+  nome      String
+  contato   String?
+  telefone  String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  empresa Empresa @relation(fields: [empresaId], references: [id])
+
+  ciclos Ciclo[]
+  lotes  LoteEstoque[]
+
+  @@index([empresaId])
 }
 
 model Produto {
-  id            String        @id @default(uuid())
+  id            String      @id @default(uuid())
+  tenantId      String
+  empresaId     String
   nome          String
   tipo          ProdutoTipo
   unidadeMedida String
-  lotes         LoteEstoque[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  empresa Empresa @relation(fields: [empresaId], references: [id])
+
+  lotes LoteEstoque[]
+
+  @@index([empresaId])
 }
 
 model LoteEstoque {
-  id                 String     @id @default(uuid())
+  id                 String   @id @default(uuid())
+  tenantId           String
+  empresaId          String
   produtoId          String
   fornecedorId       String
   quantidadeInicial  Decimal
   quantidadeRestante Decimal
   custoUnitario      Decimal
-  dataCompra         DateTime   @default(now())
-  fornecedor         Fornecedor @relation(fields: [fornecedorId], references: [id])
-  produto            Produto    @relation(fields: [produtoId], references: [id])
+  dataCompra         DateTime @default(now())
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  produto    Produto    @relation(fields: [produtoId], references: [id])
+  fornecedor Fornecedor @relation(fields: [fornecedorId], references: [id])
+
+  @@index([empresaId])
 }
 
 model Viveiro {
   id        String  @id @default(uuid())
+  tenantId  String
+  empresaId String
   nome      String
   tamanhoM2 Decimal
   status    String  @default("VAZIO")
-  ciclos    Ciclo[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  empresa Empresa @relation(fields: [empresaId], references: [id])
+
+  ciclos Ciclo[]
+
+  @@index([empresaId])
 }
 
 model Ciclo {
-  id                 String           @id @default(uuid())
+  id                 String    @id @default(uuid())
+  tenantId           String
+  empresaId          String
   viveiroId          String
   fornecedorLarvasId String
-  dataInicio         DateTime         @default(now())
+  dataInicio         DateTime  @default(now())
   dataFim            DateTime?
   quantidadeLarvas   Int
-  status             String           @default("ATIVO")
-  fornecedorLarvas   Fornecedor       @relation(fields: [fornecedorLarvasId], references: [id])
-  viveiro            Viveiro          @relation(fields: [viveiroId], references: [id])
-  registros          RegistroDiario[]
+  status             String    @default("ATIVO")
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  viveiro          Viveiro    @relation(fields: [viveiroId], references: [id])
+  fornecedorLarvas Fornecedor @relation(fields: [fornecedorLarvasId], references: [id])
+
+  registros RegistroDiario[]
+
+  @@index([empresaId])
 }
 
 model RegistroDiario {
@@ -71,7 +168,10 @@ model RegistroDiario {
   data     DateTime     @default(now())
   tipo     RegistroTipo
   detalhes Json
-  ciclo    Ciclo        @relation(fields: [cicloId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  ciclo Ciclo @relation(fields: [cicloId], references: [id])
 }
 
 enum Role {

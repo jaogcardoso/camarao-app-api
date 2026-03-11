@@ -1,12 +1,20 @@
 import { prisma } from "../../lib/prisma.js";
-import type { Usuario } from "@prisma/client";
 
 export const userRepository = {
-  async findByEmail(email: string): Promise<Usuario | null> {
-    return prisma.usuario.findUnique({ where: { email } });
+
+  async findByEmail(email: string, tenantId: string) {
+    return prisma.usuario.findFirst({
+      where: {
+        email,
+        tenantId
+      }
+    });
   },
 
-  async create(data: Omit<Usuario, "id" | "createdAt">): Promise<Usuario> {
-    return prisma.usuario.create({ data });
-  },
+  async create(data: any) {
+    return prisma.usuario.create({
+      data
+    });
+  }
+
 };
