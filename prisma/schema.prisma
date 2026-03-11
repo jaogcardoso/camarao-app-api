@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Usuario {
+  id        String   @id @default(uuid())
+  nome      String
+  email     String   @unique
+  senha     String
+  role      Role     @default(OPERADOR)
+  createdAt DateTime @default(now())
+}
+
+model Fornecedor {
+  id       String        @id @default(uuid())
+  nome     String
+  contato  String?
+  telefone String?
+  ciclos   Ciclo[]
+  lotes    LoteEstoque[]
+}
+
+model Produto {
+  id            String        @id @default(uuid())
+  nome          String
+  tipo          ProdutoTipo
+  unidadeMedida String
+  lotes         LoteEstoque[]
+}
+
+model LoteEstoque {
+  id                 String     @id @default(uuid())
+  produtoId          String
+  fornecedorId       String
+  quantidadeInicial  Decimal
+  quantidadeRestante Decimal
+  custoUnitario      Decimal
+  dataCompra         DateTime   @default(now())
+  fornecedor         Fornecedor @relation(fields: [fornecedorId], references: [id])
+  produto            Produto    @relation(fields: [produtoId], references: [id])
+}
+
+model Viveiro {
+  id        String  @id @default(uuid())
+  nome      String
+  tamanhoM2 Decimal
+  status    String  @default("VAZIO")
+  ciclos    Ciclo[]
+}
+
+model Ciclo {
+  id                 String           @id @default(uuid())
+  viveiroId          String
+  fornecedorLarvasId String
+  dataInicio         DateTime         @default(now())
+  dataFim            DateTime?
+  quantidadeLarvas   Int
+  status             String           @default("ATIVO")
+  fornecedorLarvas   Fornecedor       @relation(fields: [fornecedorLarvasId], references: [id])
+  viveiro            Viveiro          @relation(fields: [viveiroId], references: [id])
+  registros          RegistroDiario[]
+}
+
+model RegistroDiario {
+  id       String       @id @default(uuid())
+  cicloId  String
+  data     DateTime     @default(now())
+  tipo     RegistroTipo
+  detalhes Json
+  ciclo    Ciclo        @relation(fields: [cicloId], references: [id])
+}
+
+enum Role {
+  ADMIN
+  OPERADOR
+}
+
+enum ProdutoTipo {
+  RACAO
+  INSUMO
+}
+
+enum RegistroTipo {
+  ALIMENTACAO
+  USO_INSUMO
+  BIOMETRIA
+  DESPESCA_PARCIAL
+}
