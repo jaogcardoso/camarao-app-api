@@ -5,7 +5,9 @@ import { authMiddleware } from "../middlewares/authMiddleware.js";
 const router = Router();
 
 router.post("/", authMiddleware, cicloController.create);
-router.get("/", authMiddleware, cicloController.list);
-router.get("/:id", authMiddleware, cicloController.getById);
+router.get("/", authMiddleware, cicloController.listAll);
+router.get('/:cicloId', authMiddleware, cicloController.show);
+router.patch('/:id/finalizar', authMiddleware, cicloController.finish);
+
 
 export const cicloRoutes = router;

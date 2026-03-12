@@ -37,5 +37,34 @@ export const cicloService = {
       ...data,
       status: "ATIVO"
     });
+  },
+  async listarTodosOsCiclos() {
+    return cicloRepository.findAll();
+  },
+
+   async buscarCicloPorId(id: string) {
+    const ciclo = await cicloRepository.findById(id);
+    
+    if (!ciclo) {
+      throw new Error('Ciclo não encontrado.');
+    }
+
+    return ciclo;
+  },
+
+  async finalizarCiclo(cicloId: string) {
+    // 1. Verifica se o ciclo existe e está ativo
+    const ciclo = await cicloRepository.findById(cicloId);
+    
+    if (!ciclo) {
+      throw new Error('Ciclo não encontrado.');
+    }
+
+    if (ciclo.status === 'FINALIZADO') {
+      throw new Error('Este ciclo já foi finalizado anteriormente.');
+    }
+
+    // 2. Executa a finalização (Transação)
+    return cicloRepository.finalizarCicro(cicloId, ciclo.viveiroId, new Date());
   }
 };
