@@ -6,5 +6,9 @@ dist
 build
 coverage
 .prisma
+.prettierignore
+.prettierconfig.js
+.prettierrc
+
 
 /generated/prisma

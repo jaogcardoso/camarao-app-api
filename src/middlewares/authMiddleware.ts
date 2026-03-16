@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { setContext } from "../context/requestContext.js";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
@@ -25,19 +26,21 @@ export function authMiddleware(
 
   const token = authHeader.split(" ")[1];
 
-  if (!token) {
-    return res.status(401).json({ message: "Token inválido" });
-  }
-
   try {
 
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const decoded = jwt.verify(token!, JWT_SECRET) as any;
 
     req.user = {
       userId: decoded.userId,
       tenantId: decoded.tenantId,
       empresaId: decoded.empresaId
     };
+
+    setContext({
+      userId: decoded.userId,
+      tenantId: decoded.tenantId,
+      empresaId: decoded.empresaId
+    });
 
     next();
 
