@@ -9,8 +9,6 @@ export const produtoRepository = {
   tipo: 'RACAO' | 'INSUMO'
   unidadeMedida: string
 }) {
-const ctx = getContext();
-console.log("CTX:", ctx);
   const { tenantId, empresaId } = getContext();
 
   return prisma.produto.create({
