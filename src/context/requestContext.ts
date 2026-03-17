@@ -16,6 +16,7 @@ export function getContext(): RequestContext {
   if (!store) {
     throw new Error("Request context não definido");
   }
+  
 
   return store;
 }
