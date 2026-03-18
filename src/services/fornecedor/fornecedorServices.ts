@@ -2,8 +2,16 @@ import { fornecedorRepository } from '../../repositories/fornecedor/fornecedorRe
 
 export const fornecedorService = {
   async criarFornecedor(data: any) {
-    return fornecedorRepository.create(data);
-  },
+  if (data.documento) {
+    const existente = await fornecedorRepository.findByDocumento(data.documento);
+
+    if (existente) {
+      throw new Error('Fornecedor já cadastrado com esse documento');
+    }
+  }
+
+  return fornecedorRepository.create(data);
+},
 
   async listarFornecedores() {
     return fornecedorRepository.findAll();

@@ -44,6 +44,18 @@ export const fornecedorRepository = {
       }
     });
   },
+  async findByDocumento(documento: string) {
+  const { tenantId, empresaId } = getContext();
+
+  return prisma.fornecedor.findFirst({
+    where: {
+      documento,
+      tenantId: tenantId!,
+      empresaId: empresaId!,
+      deletedAt: null
+    }
+  });
+},
 
   async update(id: string, data: any) {
     return prisma.fornecedor.update({
