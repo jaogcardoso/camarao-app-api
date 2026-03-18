@@ -5,6 +5,7 @@ import viveiroRoutes from "./routes/viveiroRoutes.js";
 import { cicloRoutes } from "./routes/cicloRouter.js";
 import { produtoRoutes } from "./routes/produtoRouter.js";
 import { fornecedorRoutes } from "./routes/fornecedorRouter.js";
+import { loteRoutes } from "./routes/loteRouter.js";
 
 const app = express();
 
@@ -17,5 +18,6 @@ app.use("/viveiros", viveiroRoutes);
 app.use("/ciclos", cicloRoutes);
 app.use("/produtos", produtoRoutes);
 app.use("/fornecedores", fornecedorRoutes);
+app.use("/lotes", loteRoutes);
 
 export { app };

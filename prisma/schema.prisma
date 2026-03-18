@@ -121,6 +121,22 @@ model LoteEstoque {
 
   @@index([empresaId,tenantId])
   
+  consumoEstoques ConsumoEstoque[]
+}
+
+model ConsumoEstoque {
+  id             String   @id @default(uuid())
+  loteId         String
+  quantidade     Decimal
+  custoUnitario  Decimal
+  custoTotal     Decimal
+
+  referenciaId   String? // ex: cicloId
+  referenciaTipo String? // ex: "CICLO"
+
+  createdAt DateTime @default(now())
+
+  lote LoteEstoque @relation(fields: [loteId], references: [id])
 }
 
 model Viveiro {
