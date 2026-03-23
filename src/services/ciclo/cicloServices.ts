@@ -1,5 +1,6 @@
 import { cicloRepository } from "../../repositories/ciclo/cicloRepository.js";
 import { prisma } from "../../lib/prisma.js";
+import { consumoService } from "../consumo/consumoServices.js";
 
 export const cicloService = {
   async iniciarPovoamento(
@@ -52,4 +53,33 @@ export const cicloService = {
 
     return cicloRepository.finalizarCiclo(id, ciclo.viveiroId, new Date());
   },
+
+  async registrarConsumo(data: {
+  cicloId: string;
+  produtoId: string;
+  quantidade: number;
+  tenantId: string;
+  empresaId: string;
+}) {
+  const ciclo = await cicloRepository.findById( data.cicloId,
+  data.tenantId,
+  data.empresaId);
+
+  if (!ciclo) {
+    throw new Error('Ciclo não encontrado');
+  }
+
+  if (ciclo.status !== 'ATIVO') {
+    throw new Error('Ciclo não está ativo');
+  }
+
+  const consumo = await consumoService.consumirEstoque({
+    produtoId: data.produtoId,
+    quantidade: data.quantidade,
+    referenciaId: data.cicloId,
+    referenciaTipo: 'CICLO'
+  });
+
+  return consumo;
+}
 };

@@ -1,4 +1,4 @@
-import type { Response } from "express";
+import type { Request,Response } from "express";
 import type { AuthRequest } from "../../middlewares/authMiddleware.js";
 import { cicloService } from "../../services/ciclo/cicloServices.js";
 
@@ -65,4 +65,30 @@ export const cicloController = {
       return res.status(400).json({ message: error.message });
     }
   },
+
+  async consumir(req: AuthRequest, res: Response) {
+    if (!req.user) {
+  return res.status(401).json({ message: "Usuário não autenticado" });
+}
+  try {
+    const { cicloId } = req.params;
+    const { produtoId, quantidade } = req.body;
+
+    if (!cicloId || typeof cicloId !== 'string') {
+      return res.status(400).json({ message: 'ID inválido' });
+    }
+
+    const result = await cicloService.registrarConsumo({
+      cicloId,
+      produtoId,
+      quantidade,
+      tenantId: req.user.tenantId,
+      empresaId: req.user.empresaId
+    });
+
+    return res.json(result);
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message });
+  }
+}
 };

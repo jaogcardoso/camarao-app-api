@@ -8,6 +8,7 @@ router.post("/", authMiddleware, cicloController.create);
 router.get("/", authMiddleware, cicloController.listAll);
 router.get('/:cicloId', authMiddleware, cicloController.show);
 router.patch('/:cicloId/finalizar', authMiddleware, cicloController.finish);
+router.post('/:cicloId/consumir', authMiddleware, cicloController.consumir);
 
 
 export const cicloRoutes = router;

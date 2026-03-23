@@ -63,7 +63,24 @@ export const loteRepository = {
       }
     });
   },
+async findDisponiveisFIFO(produtoId?: string) {
+  const { tenantId, empresaId } = getContext();
 
+  return prisma.loteEstoque.findMany({
+    where: {
+      tenantId: tenantId!,
+      empresaId: empresaId!,
+      deletedAt: null,
+      quantidadeRestante: {
+        gt: 0
+      },
+      produtoId: produtoId!
+    },
+    orderBy: {
+      dataCompra: 'asc'
+    }
+  });
+},
   async softDelete(id: string) {
     return prisma.loteEstoque.update({
       where: { id },
