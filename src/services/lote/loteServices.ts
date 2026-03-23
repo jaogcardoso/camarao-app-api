@@ -4,15 +4,14 @@ import { fornecedorRepository } from '../../repositories/fornecedor/fornecedorRe
 
 export const loteService = {
   async criarLote(data: any) {
-    // 🔥 valida produto
+
     const produto = await produtoRepository.findById(data.produtoId);
     if (!produto) throw new Error('Produto não encontrado');
 
-    // 🔥 valida fornecedor
     const fornecedor = await fornecedorRepository.findById(data.fornecedorId);
     if (!fornecedor) throw new Error('Fornecedor não encontrado');
 
-    // 🔥 validações de negócio
+
     if (!data.quantidadeInicial || data.quantidadeInicial <= 0) {
       throw new Error('Quantidade inicial inválida');
     }
@@ -23,7 +22,7 @@ export const loteService = {
 
     return loteRepository.create({
       ...data,
-      quantidadeRestante: data.quantidadeInicial // 🔥 REGRA CRÍTICA
+      quantidadeRestante: data.quantidadeInicial
     });
   },
 

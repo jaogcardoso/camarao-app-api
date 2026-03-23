@@ -179,6 +179,7 @@ model Ciclo {
   registros RegistroDiario[]
 
   @@index([empresaId])
+  desbastes Desbaste[]
 }
 
 model RegistroDiario {
@@ -191,6 +192,32 @@ model RegistroDiario {
   createdAt DateTime @default(now())
 
   ciclo Ciclo @relation(fields: [cicloId], references: [id])
+}
+
+model Desbaste {
+  id                  String   @id @default(uuid())
+
+  cicloId             String
+  ciclo               Ciclo    @relation(fields: [cicloId], references: [id])
+
+  pesoTotalKg         Float
+  pesoMedioGramas     Float
+
+  quantidadeEstimado  Int
+
+  valorKg             Float
+  valorTotal          Float
+
+  observacao          String?
+
+  tenantId            String
+  empresaId           String
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([cicloId])
+  @@index([tenantId, empresaId])
 }
 
 enum Role {
