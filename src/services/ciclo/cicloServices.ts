@@ -133,7 +133,6 @@ async listarDesbastes(cicloId: string) {
     orderBy: { createdAt: 'desc' }
   });
 },
-
 async getResumoCiclo(
   cicloId: string,
   user: { tenantId: string; empresaId: string }
@@ -164,6 +163,121 @@ async getResumoCiclo(
     totalDesbasteKg: desbastes._sum.pesoTotalKg || 0,
     totalDesbasteQtd: desbastes._sum.quantidadeEstimado || 0,
     receitaDesbaste: desbastes._sum.valorTotal || 0,
+  };
+},
+async resumoCiclo(cicloId: string) {
+  const ciclo = await prisma.ciclo.findUnique({
+    where: { id: cicloId }
+  });
+
+  if (!ciclo) {
+    throw new Error("Ciclo não encontrado");
+  }
+
+  const desbastes = await prisma.desbaste.findMany({
+    where: { cicloId }
+  });
+  
+
+  const totalDesbasteKg = desbastes.reduce(
+    (acc, d) => acc + Number(d.pesoTotalKg),
+    0
+  );
+
+  const totalDesbasteQtd = desbastes.reduce(
+    (acc, d) => acc + d.quantidadeEstimado,
+    0
+  );
+
+  const receitaDesbaste = desbastes.reduce(
+    (acc, d) => acc + Number(d.valorTotal),
+    0
+  );
+
+  const consumos = await prisma.consumoEstoque.findMany({
+    where: {
+      referenciaId: cicloId,
+      referenciaTipo: "CICLO"
+    }
+  });
+
+  const custoRacao = consumos.reduce(
+    (acc, c) => acc + Number(c.custoTotal),
+    0
+  );
+
+  const totalRacaoKg = consumos.reduce(
+    (acc, c) => acc + Number(c.quantidade),
+    0
+  );
+  
+
+  const producaoKg = totalDesbasteKg;
+
+  const custoPorKg =
+  producaoKg > 0 ? custoRacao / producaoKg : 0;
+
+  const precoMedioKg =
+  producaoKg > 0 ? receitaDesbaste / producaoKg : 0;
+
+  const fcr =
+    producaoKg > 0 ? totalRacaoKg / producaoKg : 0;
+
+  const animaisRemovidos = totalDesbasteQtd;
+
+  const sobrevivencia =
+    ciclo.quantidadeLarvas > 0
+      ? animaisRemovidos / ciclo.quantidadeLarvas
+      : 0;
+
+  const animaisVivos =
+    ciclo.quantidadeLarvas - animaisRemovidos;
+
+  const ultimoDesbaste = desbastes[desbastes.length - 1];
+
+  const pesoMedioAtual = ultimoDesbaste
+    ? Number(ultimoDesbaste.pesoMedioGramas)
+    : 0;
+
+  const biomassa =
+    (animaisVivos * pesoMedioAtual) / 1000;
+
+  const lucroParcial = receitaDesbaste - custoRacao;
+
+  const margem =
+  receitaDesbaste > 0
+    ? (lucroParcial / receitaDesbaste) * 100
+    : 0;
+
+  const lucroProjetado =
+  biomassa > 0
+    ? biomassa * (precoMedioKg - custoPorKg)
+    : 0;
+
+
+  return {
+    cicloId,
+    populacaoInicial: ciclo.quantidadeLarvas,
+
+    totalDesbasteKg,
+    totalDesbasteQtd,
+    receitaDesbaste,
+
+    custoRacao,
+    totalRacaoKg,
+    lucroParcial,
+
+    fcr,
+
+    sobrevivencia,
+    animaisVivos,
+    pesoMedioAtual,
+    biomassa,
+
+    custoPorKg,
+    precoMedioKg,
+    lucroProjetado,
+    margem
   };
 }
 };

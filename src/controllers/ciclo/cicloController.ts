@@ -90,5 +90,20 @@ export const cicloController = {
   } catch (error: any) {
     return res.status(400).json({ message: error.message });
   }
+},
+async resumo(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+
+    if (!id || typeof id !== 'string') {
+      return res.status(400).json({ message: 'ID inválido' });
+    }
+
+    const resumo = await cicloService.resumoCiclo(id);
+
+    return res.json(resumo);
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message });
+  }
 }
 };

@@ -3,7 +3,8 @@ import { desbasteController } from '../controllers/desbaste/desbasteController.j
 
 const router = Router();
 
-router.post('/desbastes', desbasteController.create);
-router.get('/desbastes', desbasteController.list);
+router.post('/', desbasteController.create);
+router.get('/', desbasteController.list);
+
 
 export default router;

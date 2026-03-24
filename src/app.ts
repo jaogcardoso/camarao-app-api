@@ -7,6 +7,7 @@ import { produtoRoutes } from "./routes/produtoRouter.js";
 import { fornecedorRoutes } from "./routes/fornecedorRouter.js";
 import { loteRoutes } from "./routes/loteRouter.js";
 import { consumoRoutes } from "./routes/consumoRouter.js";
+import desbasteRoutes from "./routes/desbasteRouter.js";
 
 
 const app = express();
@@ -22,5 +23,6 @@ app.use("/produtos", produtoRoutes);
 app.use("/fornecedores", fornecedorRoutes);
 app.use("/lotes", loteRoutes);
 app.use("/estoque", consumoRoutes);
+app.use("/desbastes", desbasteRoutes);
 
 export { app };
