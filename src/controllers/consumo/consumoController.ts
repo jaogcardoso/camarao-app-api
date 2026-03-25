@@ -4,7 +4,7 @@ import { consumoService } from '../../services/consumo/consumoServices.js';
 export const consumoController = {
   async consumir(req: Request, res: Response) {
     try {
-      const { quantidade, referenciaId, referenciaTipo } = req.body;
+      const { produtoId, quantidade, referenciaId, referenciaTipo } = req.body;
 
       if (!quantidade || quantidade <= 0) {
         return res.status(400).json({
@@ -13,6 +13,7 @@ export const consumoController = {
       }
 
       const resultado = await consumoService.consumirEstoque({
+        produtoId,
         quantidade,
         referenciaId,
         referenciaTipo
