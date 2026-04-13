@@ -13,7 +13,7 @@ export const consumoService = {
       throw new Error('Quantidade inválida');
     }
 
-    const lotes = await loteRepository.findDisponiveisFIFO();
+    const lotes = await loteRepository.findDisponiveisFIFO(data.produtoId);
 
     if (!lotes.length) {
       throw new Error('Sem estoque disponível');

@@ -80,7 +80,25 @@ export const cicloService = {
     referenciaTipo: 'CICLO'
   });
 
-  return consumo;
+  const produto = await prisma.produto.findUnique({
+  where: { id: data.produtoId },
+  select: { nome: true, unidadeMedida: true },
+});
+
+await prisma.registroDiario.create({
+  data: {
+    cicloId: data.cicloId,
+    tipo: 'ALIMENTACAO',
+    detalhes: {
+      descricao: `${produto?.nome ?? 'Produto'}: ${data.quantidade} ${produto?.unidadeMedida ?? ''}`,
+      quantidade: data.quantidade,
+      unidade: produto?.unidadeMedida ?? '',
+      produtoId: data.produtoId,
+    },
+  },
+});
+
+return consumo;
 },
 async registrarDesbaste(data: any) {
   const ciclo = await cicloRepository.findById(
@@ -279,5 +297,111 @@ async resumoCiclo(cicloId: string) {
     lucroProjetado,
     margem
   };
-}
+},
+async listarEventos(
+  cicloId: string,
+  user: { tenantId: string; empresaId: string }
+) {
+  // Verifica se o ciclo pertence à empresa do usuário
+  const ciclo = await cicloRepository.findById(cicloId, user.tenantId, user.empresaId);
+  if (!ciclo) throw new Error("Ciclo não encontrado");
+
+  // Busca todos os registros do diário ordenados do mais antigo para o mais recente
+  const registros = await prisma.registroDiario.findMany({
+    where: { cicloId },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  // Formata para o frontend entender — transforma o Json "detalhes" em campos planos
+  return registros.map((r) => {
+    const detalhes = r.detalhes as Record<string, any>;
+    return {
+      id: r.id,
+      tipo: r.tipo,
+      descricao: detalhes.descricao ?? r.tipo,
+      quantidade: detalhes.quantidade ?? null,
+      unidade: detalhes.unidade ?? null,
+      createdAt: r.createdAt,
+    };
+  });
+},
+
+async registrarBiometria(
+  cicloId: string,
+  data: { pesoMedioGramas: number },
+  user: { tenantId: string; empresaId: string }
+) {
+  const ciclo = await cicloRepository.findById(cicloId, user.tenantId, user.empresaId);
+  if (!ciclo) throw new Error("Ciclo não encontrado");
+  if (ciclo.status !== 'ATIVO') throw new Error("Ciclo não está ativo");
+
+  // Cria o RegistroDiario com tipo BIOMETRIA
+  // "detalhes" é um Json livre — guardamos o que o frontend vai precisar exibir
+  return prisma.registroDiario.create({
+    data: {
+      cicloId,
+      tipo: 'BIOMETRIA',
+      detalhes: {
+        pesoMedioGramas: data.pesoMedioGramas,
+        descricao: `Biometria: ${data.pesoMedioGramas}g de peso médio`,
+        quantidade: data.pesoMedioGramas,
+        unidade: 'g',
+      },
+    },
+  });
+},
+
+async registrarDespesca(
+  cicloId: string,
+  data: { pesoTotalKg: number; valorKg: number },
+  user: { tenantId: string; empresaId: string }
+) {
+  const ciclo = await cicloRepository.findById(cicloId, user.tenantId, user.empresaId);
+  if (!ciclo) throw new Error("Ciclo não encontrado");
+  if (ciclo.status !== 'ATIVO') throw new Error("Ciclo não está ativo");
+
+  const valorTotal = data.pesoTotalKg * data.valorKg;
+
+  // Estimativa de quantidade baseada no último desbaste (peso médio)
+  const ultimoDesbaste = await prisma.desbaste.findFirst({
+    where: { cicloId },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const pesoMedioGramas = ultimoDesbaste
+    ? Number(ultimoDesbaste.pesoMedioGramas)
+    : 10; // fallback razoável se não houver biometria anterior
+
+  const quantidadeEstimado = Math.round((data.pesoTotalKg * 1000) / pesoMedioGramas);
+
+  // Cria o Desbaste (registro financeiro)
+  const desbaste = await prisma.desbaste.create({
+    data: {
+      cicloId,
+      pesoTotalKg: data.pesoTotalKg,
+      pesoMedioGramas,
+      quantidadeEstimado,
+      valorKg: data.valorKg,
+      valorTotal,
+      tenantId: user.tenantId,
+      empresaId: user.empresaId,
+    },
+  });
+
+  // Cria o RegistroDiario (histórico visível)
+  await prisma.registroDiario.create({
+    data: {
+      cicloId,
+      tipo: 'DESPESCA_PARCIAL',
+      detalhes: {
+        descricao: `Despesca: ${data.pesoTotalKg}kg a R$${data.valorKg}/kg`,
+        quantidade: data.pesoTotalKg,
+        unidade: 'kg',
+        valorTotal,
+      },
+    },
+  });
+
+  return desbaste;
+},
 };

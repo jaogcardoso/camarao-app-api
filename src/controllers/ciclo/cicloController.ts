@@ -105,5 +105,60 @@ async resumo(req: Request, res: Response) {
   } catch (error: any) {
     return res.status(400).json({ message: error.message });
   }
-}
+},
+async eventos(req: AuthRequest, res: Response): Promise<Response> {
+  try {
+    if (!req.user) return res.status(401).json({ message: "Usuário não autenticado" });
+
+    const cicloId = Array.isArray(req.params.cicloId) ? req.params.cicloId[0] : req.params.cicloId;
+    if (!cicloId) return res.status(400).json({ message: "O ID do ciclo é obrigatório." });
+
+    const eventos = await cicloService.listarEventos(cicloId, req.user);
+    return res.json(eventos);
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message });
+  }
+},
+
+async biometria(req: AuthRequest, res: Response): Promise<Response> {
+  try {
+    if (!req.user) return res.status(401).json({ message: "Usuário não autenticado" });
+
+    const cicloId = Array.isArray(req.params.cicloId) ? req.params.cicloId[0] : req.params.cicloId;
+    if (!cicloId) return res.status(400).json({ message: "O ID do ciclo é obrigatório." });
+
+    const { pesoMedioGramas } = req.body;
+    if (!pesoMedioGramas) return res.status(400).json({ message: "Peso médio é obrigatório" });
+
+    const registro = await cicloService.registrarBiometria(
+      cicloId,
+      { pesoMedioGramas: Number(pesoMedioGramas) },
+      req.user
+    );
+    return res.status(201).json(registro);
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message });
+  }
+},
+
+async despesca(req: AuthRequest, res: Response): Promise<Response> {
+  try {
+    if (!req.user) return res.status(401).json({ message: "Usuário não autenticado" });
+
+    const cicloId = Array.isArray(req.params.cicloId) ? req.params.cicloId[0] : req.params.cicloId;
+    if (!cicloId) return res.status(400).json({ message: "O ID do ciclo é obrigatório." });
+
+    const { pesoTotalKg, valorKg } = req.body;
+    if (!pesoTotalKg || !valorKg) return res.status(400).json({ message: "Peso total e valor por kg são obrigatórios" });
+
+    const registro = await cicloService.registrarDespesca(
+      cicloId,
+      { pesoTotalKg: Number(pesoTotalKg), valorKg: Number(valorKg) },
+      req.user
+    );
+    return res.status(201).json(registro);
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message });
+  }
+},
 };
