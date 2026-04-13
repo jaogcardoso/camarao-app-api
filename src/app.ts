@@ -15,7 +15,8 @@ import { estoqueRoutes } from "./routes/estoqueRouter.js";
 const app = express();
 app.use(cors({
   origin: ['http://localhost:3001',
-  'http://192.168.1.11:3001'],
+  'http://192.168.1.11:3001',
+  'https://camarao-app-front.vercel.app'],
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization'],
 }))
