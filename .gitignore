@@ -10,5 +10,5 @@ coverage
 .prettierconfig.js
 .prettierrc
 
-
+dist/
 /generated/prisma
