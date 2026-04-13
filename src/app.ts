@@ -14,8 +14,8 @@ import { estoqueRoutes } from "./routes/estoqueRouter.js";
 
 const app = express();
 app.use(cors({
-  origin: ['http://localhost:3000',
-  'http://192.168.1.11:3000'],
+  origin: ['http://localhost:3001',
+  'http://192.168.1.11:3001'],
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization'],
 }))

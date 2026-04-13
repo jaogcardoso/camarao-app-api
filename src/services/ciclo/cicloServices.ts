@@ -82,13 +82,13 @@ export const cicloService = {
 
   const produto = await prisma.produto.findUnique({
   where: { id: data.produtoId },
-  select: { nome: true, unidadeMedida: true },
+  select: { nome: true, unidadeMedida: true, tipo: true },
 });
 
 await prisma.registroDiario.create({
   data: {
     cicloId: data.cicloId,
-    tipo: 'ALIMENTACAO',
+    tipo: produto?.tipo === "INSUMO" ? "USO_INSUMO" : "ALIMENTACAO",
     detalhes: {
       descricao: `${produto?.nome ?? 'Produto'}: ${data.quantidade} ${produto?.unidadeMedida ?? ''}`,
       quantidade: data.quantidade,
@@ -353,51 +353,50 @@ async registrarBiometria(
 
 async registrarDespesca(
   cicloId: string,
-  data: { pesoTotalKg: number; valorKg: number },
+  data: {
+    pesoTotalKg: number;
+    pesoMedioGramas: number;
+    valorKg: number;
+    observacao?: string;
+  },
   user: { tenantId: string; empresaId: string }
 ) {
   const ciclo = await cicloRepository.findById(cicloId, user.tenantId, user.empresaId);
   if (!ciclo) throw new Error("Ciclo não encontrado");
   if (ciclo.status !== 'ATIVO') throw new Error("Ciclo não está ativo");
 
+  const quantidadeEstimado = Math.round(
+    (data.pesoTotalKg * 1000) / data.pesoMedioGramas
+  );
   const valorTotal = data.pesoTotalKg * data.valorKg;
 
-  // Estimativa de quantidade baseada no último desbaste (peso médio)
-  const ultimoDesbaste = await prisma.desbaste.findFirst({
-    where: { cicloId },
-    orderBy: { createdAt: 'desc' },
-  });
-
-  const pesoMedioGramas = ultimoDesbaste
-    ? Number(ultimoDesbaste.pesoMedioGramas)
-    : 10; // fallback razoável se não houver biometria anterior
-
-  const quantidadeEstimado = Math.round((data.pesoTotalKg * 1000) / pesoMedioGramas);
-
-  // Cria o Desbaste (registro financeiro)
+  // Cria o Desbaste
   const desbaste = await prisma.desbaste.create({
     data: {
       cicloId,
       pesoTotalKg: data.pesoTotalKg,
-      pesoMedioGramas,
+      pesoMedioGramas: data.pesoMedioGramas,
       quantidadeEstimado,
       valorKg: data.valorKg,
       valorTotal,
+      observacao: data.observacao ?? null,
       tenantId: user.tenantId,
       empresaId: user.empresaId,
     },
   });
 
-  // Cria o RegistroDiario (histórico visível)
+  // Registra no histórico do diário
   await prisma.registroDiario.create({
     data: {
       cicloId,
       tipo: 'DESPESCA_PARCIAL',
       detalhes: {
-        descricao: `Despesca: ${data.pesoTotalKg}kg a R$${data.valorKg}/kg`,
+        descricao: `Desbaste: ${data.pesoTotalKg}kg · ${data.pesoMedioGramas}g médio · R$${data.valorKg}/kg`,
         quantidade: data.pesoTotalKg,
         unidade: 'kg',
+        quantidadeEstimado,
         valorTotal,
+        observacao: data.observacao,
       },
     },
   });

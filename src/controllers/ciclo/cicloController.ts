@@ -5,7 +5,8 @@ import { cicloService } from "../../services/ciclo/cicloServices.js";
 export const cicloController = {
   async create(req: AuthRequest, res: Response): Promise<Response> {
     try {
-      const { viveiroId, quantidadeLarvas, fornecedorLarvasId, dataInicio } = req.body;
+      const { viveiroId, quantidadeLarvas, fornecedorLarvasId } = req.body;
+      const dataInicio = new Date();
 
       if (!req.user) {
         return res.status(401).json({ message: "Usuário não autenticado" });
@@ -148,12 +149,20 @@ async despesca(req: AuthRequest, res: Response): Promise<Response> {
     const cicloId = Array.isArray(req.params.cicloId) ? req.params.cicloId[0] : req.params.cicloId;
     if (!cicloId) return res.status(400).json({ message: "O ID do ciclo é obrigatório." });
 
-    const { pesoTotalKg, valorKg } = req.body;
-    if (!pesoTotalKg || !valorKg) return res.status(400).json({ message: "Peso total e valor por kg são obrigatórios" });
+    const { pesoTotalKg, pesoMedioGramas, valorKg, observacao } = req.body;
+
+    if (!pesoTotalKg || !pesoMedioGramas || !valorKg) {
+      return res.status(400).json({ message: "Peso total, peso médio e valor por kg são obrigatórios" });
+    }
 
     const registro = await cicloService.registrarDespesca(
       cicloId,
-      { pesoTotalKg: Number(pesoTotalKg), valorKg: Number(valorKg) },
+      {
+        pesoTotalKg: Number(pesoTotalKg),
+        pesoMedioGramas: Number(pesoMedioGramas),
+        valorKg: Number(valorKg),
+        observacao,
+      },
       req.user
     );
     return res.status(201).json(registro);
