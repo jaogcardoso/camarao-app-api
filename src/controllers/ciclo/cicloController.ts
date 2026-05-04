@@ -92,16 +92,17 @@ export const cicloController = {
     return res.status(400).json({ message: error.message });
   }
 },
-async resumo(req: Request, res: Response) {
+async resumo(req: AuthRequest, res: Response) {
   try {
-    const { id } = req.params;
+    if (!req.user) return res.status(401).json({ message: "Usuário não autenticado" });
 
-    if (!id || typeof id !== 'string') {
+    const cicloId = Array.isArray(req.params.cicloId) ? req.params.cicloId[0] : req.params.cicloId;
+
+    if (!cicloId || typeof cicloId !== 'string') {
       return res.status(400).json({ message: 'ID inválido' });
     }
 
-    const resumo = await cicloService.resumoCiclo(id);
-
+    const resumo = await cicloService.resumoCiclo(cicloId);
     return res.json(resumo);
   } catch (error: any) {
     return res.status(400).json({ message: error.message });
