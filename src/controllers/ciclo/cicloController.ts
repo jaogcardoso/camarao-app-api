@@ -172,4 +172,13 @@ async despesca(req: AuthRequest, res: Response): Promise<Response> {
     return res.status(400).json({ message: error.message });
   }
 },
+async resumosAtivos(req: AuthRequest, res: Response): Promise<Response> {
+  try {
+    if (!req.user) return res.status(401).json({ message: "Usuário não autenticado" });
+    const resumos = await cicloService.resumosAtivos(req.user);
+    return res.json(resumos);
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message });
+  }
+},
 };
