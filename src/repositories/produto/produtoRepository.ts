@@ -37,7 +37,8 @@ export const produtoRepository = {
       where: {
         nome,
         tenantId: tenantId!,
-        empresaId: empresaId!
+        empresaId: empresaId!,
+        deletedAt: null
       }
     });
 
