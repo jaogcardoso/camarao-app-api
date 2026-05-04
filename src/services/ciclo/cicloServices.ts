@@ -214,22 +214,37 @@ async resumoCiclo(cicloId: string) {
   );
 
   const consumos = await prisma.consumoEstoque.findMany({
-    where: {
-      referenciaId: cicloId,
-      referenciaTipo: "CICLO"
-    }
-  });
+      where: {
+        referenciaId: cicloId,
+        referenciaTipo: "CICLO"
+      },
+      include: {
+        lote: {
+          include: {
+            produto: {
+              select: { tipo: true }
+            }
+          }
+        }
+      }
+    });
 
-  const custoRacao = consumos.reduce(
-    (acc, c) => acc + Number(c.custoTotal),
-    0
-  );
+  const consumosRacao = consumos.filter(c => c.lote.produto.tipo === 'RACAO');
+  const consumosInsumo = consumos.filter(c => c.lote.produto.tipo === 'INSUMO');
 
-  const totalRacaoKg = consumos.reduce(
-    (acc, c) => acc + Number(c.quantidade),
-    0
-  );
-  
+  const custoRacao = consumosRacao.reduce(
+      (acc, c) => acc + Number(c.custoTotal), 0
+    );
+  const custoInsumos = consumosInsumo.reduce(
+      (acc, c) => acc + Number(c.custoTotal), 0
+    );
+
+  const totalRacaoKg = consumosRacao.reduce(
+      (acc, c) => acc + Number(c.quantidade), 0
+    );
+  const totalInsumosKg = consumosInsumo.reduce(
+      (acc, c) => acc + Number(c.quantidade), 0
+    );
 
   const producaoKg = totalDesbasteKg;
 
@@ -295,31 +310,33 @@ const pesoMedioAtual = dataBiometria >= dataDesbaste
 
 
   return {
-    cicloId,
-    populacaoInicial: ciclo.quantidadeLarvas,
+  cicloId,
+  populacaoInicial: ciclo.quantidadeLarvas,
 
-    totalDesbasteKg,
-    totalDesbasteQtd,
-    receitaDesbaste,
+  totalDesbasteKg,
+  totalDesbasteQtd,
+  receitaDesbaste,
 
-    custoLarvas,
-    custoRacao,
-    custoTotal,
-    totalRacaoKg,
-    lucroParcial,
+  custoLarvas,
+  custoRacao,
+  custoInsumos,
+  custoTotal: custoRacao + custoInsumos + custoLarvas,
+  totalRacaoKg,
+  totalInsumosKg,
+  lucroParcial: receitaDesbaste - (custoRacao + custoInsumos + custoLarvas),
 
-    fcr,
+  fcr,
 
-    sobrevivencia,
-    animaisVivos,
-    pesoMedioAtual,
-    biomassa,
+  sobrevivencia,
+  animaisVivos,
+  pesoMedioAtual,
+  biomassa,
 
-    custoPorKg,
-    precoMedioKg,
-    lucroProjetado,
-    margem
-  };
+  custoPorKg,
+  precoMedioKg,
+  lucroProjetado,
+  margem,
+};
 },
 async listarEventos(
   cicloId: string,
