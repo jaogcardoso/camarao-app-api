@@ -9,6 +9,7 @@ export const cicloService = {
       quantidadeLarvas: number;
       fornecedorLarvasId: string;
       dataInicio: Date;
+      custoLarvas?: number;
     },
     user: { tenantId: string; empresaId: string }
   ) {
@@ -278,7 +279,9 @@ const pesoMedioAtual = dataBiometria >= dataDesbaste
   const biomassa =
     (animaisVivos * pesoMedioAtual) / 1000;
 
-  const lucroParcial = receitaDesbaste - custoRacao;
+  const custoLarvas = Number(ciclo.custoLarvas ?? 0);
+  const custoTotal = custoRacao + custoLarvas;
+  const lucroParcial = receitaDesbaste - custoTotal;
 
   const margem =
   receitaDesbaste > 0
@@ -299,7 +302,9 @@ const pesoMedioAtual = dataBiometria >= dataDesbaste
     totalDesbasteQtd,
     receitaDesbaste,
 
+    custoLarvas,
     custoRacao,
+    custoTotal,
     totalRacaoKg,
     lucroParcial,
 

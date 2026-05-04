@@ -4,29 +4,30 @@ import { cicloService } from "../../services/ciclo/cicloServices.js";
 
 export const cicloController = {
   async create(req: AuthRequest, res: Response): Promise<Response> {
-    try {
-      const { viveiroId, quantidadeLarvas, fornecedorLarvasId } = req.body;
-      const dataInicio = new Date();
+  try {
+    const { viveiroId, quantidadeLarvas, fornecedorLarvasId, custoLarvas } = req.body;
+    const dataInicio = new Date();
 
-      if (!req.user) {
-        return res.status(401).json({ message: "Usuário não autenticado" });
-      }
-
-      const ciclo = await cicloService.iniciarPovoamento(
-        {
-          viveiroId,
-          quantidadeLarvas,
-          fornecedorLarvasId,
-          dataInicio: new Date(dataInicio),
-        },
-        req.user
-      );
-
-      return res.status(201).json(ciclo);
-    } catch (error: any) {
-      return res.status(400).json({ message: error.message || "Erro ao iniciar ciclo" });
+    if (!req.user) {
+      return res.status(401).json({ message: "Usuário não autenticado" });
     }
-  },
+
+    const ciclo = await cicloService.iniciarPovoamento(
+      {
+        viveiroId,
+        quantidadeLarvas,
+        fornecedorLarvasId,
+        dataInicio,
+        ...(custoLarvas !== undefined && { custoLarvas: Number(custoLarvas) }),
+      },
+      req.user
+    );
+
+    return res.status(201).json(ciclo);
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message || "Erro ao iniciar ciclo" });
+  }
+},
 
   async listAll(req: AuthRequest, res: Response): Promise<Response> {
     try {
