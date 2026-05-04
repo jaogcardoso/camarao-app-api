@@ -9,7 +9,7 @@ router.get("/", authMiddleware, cicloController.listAll);
 router.get('/:cicloId', authMiddleware, cicloController.show);
 router.patch('/:cicloId/finalizar', authMiddleware, cicloController.finish);
 router.post('/:cicloId/consumir', authMiddleware, cicloController.consumir);
-router.get('/ciclos/:cicloId/resumo', authMiddleware, cicloController.resumo);
+router.get('/:cicloId/resumo', authMiddleware, cicloController.resumo);
 router.get('/:cicloId/eventos', authMiddleware, cicloController.eventos);
 router.post('/:cicloId/biometria', authMiddleware, cicloController.biometria);
 router.post('/:cicloId/despesca', authMiddleware, cicloController.despesca);
