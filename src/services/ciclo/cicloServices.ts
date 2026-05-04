@@ -251,12 +251,30 @@ async resumoCiclo(cicloId: string) {
   const animaisVivos =
     ciclo.quantidadeLarvas - animaisRemovidos;
 
-  const ultimoDesbaste = desbastes[desbastes.length - 1];
+const ultimoDesbaste = desbastes[desbastes.length - 1];
 
-  const pesoMedioAtual = ultimoDesbaste
-    ? Number(ultimoDesbaste.pesoMedioGramas)
-    : 0;
+// Busca última biometria do RegistroDiario
+const ultimaBiometria = await prisma.registroDiario.findFirst({
+  where: { cicloId, tipo: 'BIOMETRIA' },
+  orderBy: { createdAt: 'desc' },
+});
 
+const pesoMedioBiometria = ultimaBiometria
+  ? Number((ultimaBiometria.detalhes as Record<string, any>).pesoMedioGramas ?? 0)
+  : 0;
+
+const pesoMedioDesbaste = ultimoDesbaste
+  ? Number(ultimoDesbaste.pesoMedioGramas)
+  : 0;
+
+// Usa o mais recente entre biometria e desbaste
+const dataDesbaste = ultimoDesbaste ? new Date(ultimoDesbaste.createdAt).getTime() : 0;
+const dataBiometria = ultimaBiometria ? new Date(ultimaBiometria.createdAt).getTime() : 0;
+
+const pesoMedioAtual = dataBiometria >= dataDesbaste
+  ? pesoMedioBiometria
+  : pesoMedioDesbaste;
+  
   const biomassa =
     (animaisVivos * pesoMedioAtual) / 1000;
 
