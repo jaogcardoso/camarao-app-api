@@ -499,36 +499,25 @@ async atualizarCiclo(
   });
 },
 async resumosAtivos(user: { tenantId: string; empresaId: string }) {
-  // Busca todos os ciclos ativos
   const ciclos = await prisma.ciclo.findMany({
     where: { tenantId: user.tenantId, empresaId: user.empresaId, status: 'ATIVO' },
-    select: { id: true, quantidadeLarvas: true },
+    select: { id: true },
   });
 
   if (!ciclos.length) return {};
 
-  const cicloIds = ciclos.map(c => c.id);
-
-  // Busca todos os desbastes dos ciclos ativos em uma query só
-  const desbastes = await prisma.desbaste.findMany({
-    where: { cicloId: { in: cicloIds } },
-    select: { cicloId: true, quantidadeEstimado: true },
-  });
-
-  // Agrupa por cicloId
-  const removidosPorCiclo: Record<string, number> = {};
-  for (const d of desbastes) {
-    removidosPorCiclo[d.cicloId] = (removidosPorCiclo[d.cicloId] ?? 0) + d.quantidadeEstimado;
-  }
-
-  // Monta o resultado
   const resultado: Record<string, number> = {};
-  for (const ciclo of ciclos) {
-    const removidos = removidosPorCiclo[ciclo.id] ?? 0;
-    resultado[ciclo.id] = ciclo.quantidadeLarvas - removidos;
-  }
 
-  return resultado; // { cicloId: animaisVivos }
+  await Promise.all(ciclos.map(async (ciclo) => {
+    try {
+      const resumo = await cicloService.resumoCiclo(ciclo.id);
+      resultado[ciclo.id] = resumo.animaisVivos;
+    } catch {
+      resultado[ciclo.id] = 0;
+    }
+  }));
+
+  return resultado;
 },
 async getConsumos(cicloId: string) {
   const consumos = await prisma.consumoEstoque.findMany({
