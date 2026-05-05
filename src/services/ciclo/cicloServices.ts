@@ -62,30 +62,27 @@ export const cicloService = {
   unidadeDigitada?: string;
   tenantId: string;
   empresaId: string;
-}) {
-  const ciclo = await cicloRepository.findById( data.cicloId,
-  data.tenantId,
-  data.empresaId);
+}) {const ciclo = await cicloRepository.findById(data.cicloId, data.tenantId, data.empresaId);
 
-  if (!ciclo) {
-    throw new Error('Ciclo não encontrado');
-  }
+if (!ciclo) {
+  throw new Error('Ciclo não encontrado');
+}
 
-  if (ciclo.status !== 'ATIVO') {
-    throw new Error('Ciclo não está ativo');
-  }
+if (ciclo.status !== 'ATIVO') {
+  throw new Error('Ciclo não está ativo');
+}
 
-  const consumo = await consumoService.consumirEstoque({
-    produtoId: data.produtoId,
-    quantidade: data.quantidade,
-    unidadeDigitada: data.unidadeDigitada ?? produto?.unidadeMedida ?? 'g',
-    referenciaId: data.cicloId,
-    referenciaTipo: 'CICLO'
-  });
-
-  const produto = await prisma.produto.findUnique({
+const produto = await prisma.produto.findUnique({
   where: { id: data.produtoId },
   select: { nome: true, unidadeMedida: true, tipo: true },
+});
+
+const consumo = await consumoService.consumirEstoque({
+  produtoId: data.produtoId,
+  quantidade: data.quantidade,
+  unidadeDigitada: data.unidadeDigitada ?? produto?.unidadeMedida ?? 'g',
+  referenciaId: data.cicloId,
+  referenciaTipo: 'CICLO'
 });
 
 await prisma.registroDiario.create({
