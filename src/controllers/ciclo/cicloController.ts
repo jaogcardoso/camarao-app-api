@@ -74,7 +74,7 @@ export const cicloController = {
 }
   try {
     const { cicloId } = req.params;
-    const { produtoId, quantidade } = req.body;
+    const { produtoId, quantidade, unidadeDigitada } = req.body;
 
     if (!cicloId || typeof cicloId !== 'string') {
       return res.status(400).json({ message: 'ID inválido' });
@@ -84,6 +84,7 @@ export const cicloController = {
       cicloId,
       produtoId,
       quantidade,
+      unidadeDigitada,
       tenantId: req.user.tenantId,
       empresaId: req.user.empresaId
     });

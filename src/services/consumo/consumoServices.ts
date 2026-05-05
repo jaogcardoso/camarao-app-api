@@ -1,17 +1,29 @@
 import { Prisma } from '@prisma/client';
 import { loteRepository } from '../../repositories/lote/loteRepository.js';
 import { prisma } from '../../lib/prisma.js';
+import { paraBase } from '../../utils/unidade.js';
 
 export const consumoService = {
   async consumirEstoque(data: {
     produtoId: string;
     quantidade: number;
+    unidadeDigitada?: string; // unidade que o usuário digitou
     referenciaId?: string;
     referenciaTipo?: string;
   }) {
     if (!data.quantidade || data.quantidade <= 0) {
       throw new Error('Quantidade inválida');
     }
+
+    // Busca produto para saber a unidade base
+    const produto = await prisma.produto.findUnique({
+      where: { id: data.produtoId },
+      select: { unidadeMedida: true, tipoUnidade: true }
+    });
+
+    // Converte para unidade base se necessário
+    const unidadeDigitada = data.unidadeDigitada ?? produto?.unidadeMedida ?? 'g';
+    const quantidadeBase = paraBase(data.quantidade, unidadeDigitada);
 
     const lotes = await loteRepository.findDisponiveisFIFO(data.produtoId);
 
@@ -24,11 +36,13 @@ export const consumoService = {
       0
     );
 
-    if (totalDisponivel < data.quantidade) {
-      throw new Error('Estoque insuficiente');
+    if (totalDisponivel < quantidadeBase) {
+      throw new Error(
+        `Estoque insuficiente. Disponível: ${totalDisponivel}${produto?.unidadeMedida ?? 'g'}, solicitado: ${quantidadeBase}${produto?.unidadeMedida ?? 'g'}`
+      );
     }
 
-    let restante = data.quantidade;
+    let restante = quantidadeBase;
     const consumos: any[] = [];
 
     await prisma.$transaction(async (tx) => {
@@ -45,9 +59,7 @@ export const consumoService = {
             loteId: lote.id,
             quantidade: new Prisma.Decimal(consumir),
             custoUnitario: lote.custoUnitario,
-            custoTotal: new Prisma.Decimal(consumir).mul(
-              lote.custoUnitario
-            ),
+            custoTotal: new Prisma.Decimal(consumir).mul(lote.custoUnitario),
             referenciaId: data.referenciaId || null,
             referenciaTipo: data.referenciaTipo || null
           }
@@ -67,17 +79,16 @@ export const consumoService = {
     });
 
     const totalConsumido = consumos.reduce(
-      (acc, c) => acc + Number(c.quantidade),
-      0
+      (acc, c) => acc + Number(c.quantidade), 0
     );
 
     const custoTotal = consumos.reduce(
-      (acc, c) => acc + Number(c.custoTotal),
-      0
+      (acc, c) => acc + Number(c.custoTotal), 0
     );
 
     return {
       quantidadeConsumida: totalConsumido,
+      unidadeBase: produto?.unidadeMedida ?? 'g',
       custoTotal,
       custoMedio: custoTotal / totalConsumido
     };

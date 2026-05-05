@@ -59,6 +59,7 @@ export const cicloService = {
   cicloId: string;
   produtoId: string;
   quantidade: number;
+  unidadeDigitada?: string;
   tenantId: string;
   empresaId: string;
 }) {
@@ -77,6 +78,7 @@ export const cicloService = {
   const consumo = await consumoService.consumirEstoque({
     produtoId: data.produtoId,
     quantidade: data.quantidade,
+    unidadeDigitada: data.unidadeDigitada ?? produto?.unidadeMedida ?? 'g',
     referenciaId: data.cicloId,
     referenciaTipo: 'CICLO'
   });
