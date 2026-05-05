@@ -234,9 +234,14 @@ async resumoCiclo(cicloId: string) {
     (acc, c) => acc + Number(c.custoTotal), 0
   );
 
-  const totalRacaoKg = consumosRacao.reduce(
-    (acc, c) => acc + Number(c.quantidade), 0
-  );
+  const totalRacaoKg = consumosRacao.reduce((acc, c) => {
+  const qtd = Number(c.quantidade);
+  const unidade = c.lote.produto.unidadeMedida?.toLowerCase() ?? 'kg';
+  if (unidade === 'g') return acc + qtd / 1000;
+  if (unidade === 'mg') return acc + qtd / 1000000;
+  if (unidade === 't') return acc + qtd * 1000;
+  return acc + qtd; // kg já está em kg
+}, 0);
 
   const totalInsumosKg = consumosInsumo.reduce((acc, c) => {
     const qtd = Number(c.quantidade);
