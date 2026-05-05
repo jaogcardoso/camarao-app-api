@@ -196,155 +196,159 @@ async resumoCiclo(cicloId: string) {
   const desbastes = await prisma.desbaste.findMany({
     where: { cicloId }
   });
-  
 
   const totalDesbasteKg = desbastes.reduce(
-    (acc, d) => acc + Number(d.pesoTotalKg),
-    0
+    (acc, d) => acc + Number(d.pesoTotalKg), 0
   );
 
   const totalDesbasteQtd = desbastes.reduce(
-    (acc, d) => acc + d.quantidadeEstimado,
-    0
+    (acc, d) => acc + d.quantidadeEstimado, 0
   );
 
   const receitaDesbaste = desbastes.reduce(
-    (acc, d) => acc + Number(d.valorTotal),
-    0
+    (acc, d) => acc + Number(d.valorTotal), 0
   );
 
   const consumos = await prisma.consumoEstoque.findMany({
-      where: {
-        referenciaId: cicloId,
-        referenciaTipo: "CICLO"
-      },
-      include: {
-        lote: {
-          include: {
-            produto: {
-              select: { tipo: true, unidadeMedida: true }
-            }
+    where: {
+      referenciaId: cicloId,
+      referenciaTipo: "CICLO"
+    },
+    include: {
+      lote: {
+        include: {
+          produto: {
+            select: { tipo: true, unidadeMedida: true }
           }
         }
       }
-    });
+    }
+  });
 
   const consumosRacao = consumos.filter(c => c.lote.produto.tipo === 'RACAO');
   const consumosInsumo = consumos.filter(c => c.lote.produto.tipo === 'INSUMO');
 
   const custoRacao = consumosRacao.reduce(
-      (acc, c) => acc + Number(c.custoTotal), 0
-    );
+    (acc, c) => acc + Number(c.custoTotal), 0
+  );
   const custoInsumos = consumosInsumo.reduce(
-      (acc, c) => acc + Number(c.custoTotal), 0
-    );
+    (acc, c) => acc + Number(c.custoTotal), 0
+  );
 
   const totalRacaoKg = consumosRacao.reduce(
-      (acc, c) => acc + Number(c.quantidade), 0
-    );
+    (acc, c) => acc + Number(c.quantidade), 0
+  );
+
   const totalInsumosKg = consumosInsumo.reduce((acc, c) => {
-  const qtd = Number(c.quantidade);
-  const unidade = c.lote.produto.unidadeMedida?.toLowerCase() ?? 'kg';
-  
-  if (unidade === 'g') return acc + qtd / 1000;
-  if (unidade === 'mg') return acc + qtd / 1000000;
-  if (unidade === 'l') return acc + qtd; // litro ≈ kg para fins práticos
-  if (unidade === 'ml') return acc + qtd / 1000;
-  if (unidade === 't') return acc + qtd * 1000;
-  return acc + qtd; // kg, saco, caixa, unidade — mantém como está
-}, 0);
+    const qtd = Number(c.quantidade);
+    const unidade = c.lote.produto.unidadeMedida?.toLowerCase() ?? 'kg';
+    if (unidade === 'g') return acc + qtd / 1000;
+    if (unidade === 'mg') return acc + qtd / 1000000;
+    if (unidade === 'l') return acc + qtd;
+    if (unidade === 'ml') return acc + qtd / 1000;
+    if (unidade === 't') return acc + qtd * 1000;
+    return acc + qtd;
+  }, 0);
 
+  // ── Peso médio — mais recente entre biometria e desbaste ──
+  const ultimoDesbaste = desbastes[desbastes.length - 1];
+
+  const ultimaBiometria = await prisma.registroDiario.findFirst({
+    where: { cicloId, tipo: 'BIOMETRIA' },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const pesoMedioBiometria = ultimaBiometria
+    ? Number((ultimaBiometria.detalhes as Record<string, any>).pesoMedioGramas ?? 0)
+    : 0;
+
+  const pesoMedioDesbaste = ultimoDesbaste
+    ? Number(ultimoDesbaste.pesoMedioGramas)
+    : 0;
+
+  const dataDesbaste = ultimoDesbaste ? new Date(ultimoDesbaste.createdAt).getTime() : 0;
+  const dataBiometria = ultimaBiometria ? new Date(ultimaBiometria.createdAt).getTime() : 0;
+
+  const pesoMedioAtual = dataBiometria >= dataDesbaste
+    ? pesoMedioBiometria
+    : pesoMedioDesbaste;
+
+  // ── Dias do ciclo ──
+  const dataInicio = new Date(ciclo.dataInicio).getTime();
+  const dataFim = ciclo.dataFim ? new Date(ciclo.dataFim).getTime() : Date.now();
+  const diasDoCiclo = Math.max(1, Math.floor((dataFim - dataInicio) / (1000 * 60 * 60 * 24)));
+
+  // ── Biomassa estimada pelo consumo de ração (3% do peso corporal/dia) ──
+  const TAXA_ALIMENTACAO = 0.03;
+  const biomassaEstimadaRacao = totalRacaoKg > 0 && diasDoCiclo > 0
+    ? totalRacaoKg / diasDoCiclo / TAXA_ALIMENTACAO
+    : 0;
+
+  // Usa biomassa por ração se tiver dados de ração e biometria
+  // Caso contrário usa populacaoInicial * pesoMedio como fallback
+  const biomassa = biomassaEstimadaRacao > 0 && pesoMedioAtual > 0
+    ? biomassaEstimadaRacao
+    : (ciclo.quantidadeLarvas * pesoMedioAtual) / 1000;
+
+  // ── Animais vivos estimados ──
+  const animaisVivos = pesoMedioAtual > 0 && biomassa > 0
+    ? Math.round((biomassa * 1000) / pesoMedioAtual)
+    : ciclo.quantidadeLarvas - totalDesbasteQtd;
+
+  // ── Sobrevivência ──
+  const sobrevivencia = ciclo.quantidadeLarvas > 0
+    ? Math.min(1, animaisVivos / ciclo.quantidadeLarvas)
+    : 0;
+
+  // ── Financeiro ──
   const producaoKg = totalDesbasteKg;
-
-  const custoPorKg =
-  producaoKg > 0 ? custoRacao / producaoKg : 0;
-
-  const precoMedioKg =
-  producaoKg > 0 ? receitaDesbaste / producaoKg : 0;
-
-  const fcr =
-    producaoKg > 0 ? totalRacaoKg / producaoKg : 0;
-
-  const animaisRemovidos = totalDesbasteQtd;
-
-  const sobrevivencia =
-    ciclo.quantidadeLarvas > 0
-      ? animaisRemovidos / ciclo.quantidadeLarvas
-      : 0;
-
-  const animaisVivos =
-    ciclo.quantidadeLarvas - animaisRemovidos;
-
-const ultimoDesbaste = desbastes[desbastes.length - 1];
-
-// Busca última biometria do RegistroDiario
-const ultimaBiometria = await prisma.registroDiario.findFirst({
-  where: { cicloId, tipo: 'BIOMETRIA' },
-  orderBy: { createdAt: 'desc' },
-});
-
-const pesoMedioBiometria = ultimaBiometria
-  ? Number((ultimaBiometria.detalhes as Record<string, any>).pesoMedioGramas ?? 0)
-  : 0;
-
-const pesoMedioDesbaste = ultimoDesbaste
-  ? Number(ultimoDesbaste.pesoMedioGramas)
-  : 0;
-
-// Usa o mais recente entre biometria e desbaste
-const dataDesbaste = ultimoDesbaste ? new Date(ultimoDesbaste.createdAt).getTime() : 0;
-const dataBiometria = ultimaBiometria ? new Date(ultimaBiometria.createdAt).getTime() : 0;
-
-const pesoMedioAtual = dataBiometria >= dataDesbaste
-  ? pesoMedioBiometria
-  : pesoMedioDesbaste;
-  
-  const biomassa =
-    (animaisVivos * pesoMedioAtual) / 1000;
-
   const custoLarvas = Number(ciclo.custoLarvas ?? 0);
-  const custoTotal = custoRacao + custoLarvas;
+  const custoTotal = custoRacao + custoInsumos + custoLarvas;
   const lucroParcial = receitaDesbaste - custoTotal;
 
-  const margem =
-  receitaDesbaste > 0
+  const custoPorKg = producaoKg > 0 ? custoTotal / producaoKg : 0;
+  const precoMedioKg = producaoKg > 0 ? receitaDesbaste / producaoKg : 0;
+  const fcr = producaoKg > 0 ? totalRacaoKg / producaoKg : 0;
+
+  const margem = receitaDesbaste > 0
     ? (lucroParcial / receitaDesbaste) * 100
     : 0;
 
-  const lucroProjetado =
-  biomassa > 0
+  // ── Lucro projetado usando biomassa estimada ──
+  const lucroProjetado = biomassa > 0 && precoMedioKg > 0
     ? biomassa * (precoMedioKg - custoPorKg)
     : 0;
 
-
   return {
-  cicloId,
-  populacaoInicial: ciclo.quantidadeLarvas,
+    cicloId,
+    populacaoInicial: ciclo.quantidadeLarvas,
 
-  totalDesbasteKg,
-  totalDesbasteQtd,
-  receitaDesbaste,
+    totalDesbasteKg,
+    totalDesbasteQtd,
+    receitaDesbaste,
 
-  custoLarvas,
-  custoRacao,
-  custoInsumos,
-  custoTotal: custoRacao + custoInsumos + custoLarvas,
-  totalRacaoKg,
-  totalInsumosKg,
-  lucroParcial: receitaDesbaste - (custoRacao + custoInsumos + custoLarvas),
+    custoLarvas,
+    custoRacao,
+    custoInsumos,
+    custoTotal,
+    totalRacaoKg,
+    totalInsumosKg,
+    lucroParcial,
 
-  fcr,
+    fcr,
+    diasDoCiclo,
+    biomassaEstimadaRacao,
 
-  sobrevivencia,
-  animaisVivos,
-  pesoMedioAtual,
-  biomassa,
+    sobrevivencia,
+    animaisVivos,
+    pesoMedioAtual,
+    biomassa,
 
-  custoPorKg,
-  precoMedioKg,
-  lucroProjetado,
-  margem,
-};
+    custoPorKg,
+    precoMedioKg,
+    lucroProjetado,
+    margem,
+  };
 },
 async listarEventos(
   cicloId: string,
