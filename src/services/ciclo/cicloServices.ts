@@ -339,6 +339,11 @@ async resumoCiclo(cicloId: string) {
     : 0;
 
   // ── Lucro projetado usando biomassa estimada ──
+    const precoReferencia = precoMedioKg > 0
+      ? precoMedioKg  // usa preço real dos desbastes se tiver
+      : Number(ciclo.precoEsperadoKg ?? 0); // senão usa o esperado
+
+
   const lucroProjetado = biomassa > 0 && precoMedioKg > 0
     ? biomassa * (precoMedioKg - custoPorKg)
     : 0;
@@ -373,6 +378,7 @@ async resumoCiclo(cicloId: string) {
     precoMedioKg,
     lucroProjetado,
     margem,
+    precoEsperadoKg: Number(ciclo.precoEsperadoKg ?? 0),
   };
 },
 async listarEventos(
@@ -480,7 +486,19 @@ async registrarDespesca(
 
   return desbaste;
 },
+async atualizarCiclo(
+  id: string,
+  data: { precoEsperadoKg?: number; custoLarvas?: number },
+  user: { tenantId: string; empresaId: string }
+) {
+  const ciclo = await cicloRepository.findById(id, user.tenantId, user.empresaId);
+  if (!ciclo) throw new Error("Ciclo não encontrado.");
 
+  return prisma.ciclo.update({
+    where: { id },
+    data,
+  });
+},
 async resumosAtivos(user: { tenantId: string; empresaId: string }) {
   // Busca todos os ciclos ativos
   const ciclos = await prisma.ciclo.findMany({

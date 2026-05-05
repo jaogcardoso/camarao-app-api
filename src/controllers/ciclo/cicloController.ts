@@ -181,4 +181,22 @@ async resumosAtivos(req: AuthRequest, res: Response): Promise<Response> {
     return res.status(400).json({ message: error.message });
   }
 },
+async update(req: AuthRequest, res: Response): Promise<Response> {
+  try {
+    if (!req.user) return res.status(401).json({ message: "Usuário não autenticado" });
+    const cicloId = Array.isArray(req.params.cicloId) ? req.params.cicloId[0] : req.params.cicloId;
+    if (!cicloId) return res.status(400).json({ message: "O ID do ciclo é obrigatório." });
+
+    const { precoEsperadoKg, custoLarvas } = req.body;
+
+    const ciclo = await cicloService.atualizarCiclo(cicloId, {
+      ...(precoEsperadoKg !== undefined && { precoEsperadoKg: Number(precoEsperadoKg) }),
+      ...(custoLarvas !== undefined && { custoLarvas: Number(custoLarvas) }),
+    }, req.user);
+
+    return res.json(ciclo);
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message });
+  }
+},
 };

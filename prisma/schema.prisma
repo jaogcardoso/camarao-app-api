@@ -168,6 +168,7 @@ model Ciclo {
   dataFim            DateTime?
   quantidadeLarvas   Int
   custoLarvas        Decimal?
+  precoEsperadoKg    Decimal?
   status             String    @default("ATIVO")
 
   createdAt DateTime  @default(now())
