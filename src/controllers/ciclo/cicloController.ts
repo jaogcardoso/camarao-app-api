@@ -1,6 +1,7 @@
 import type { Request,Response } from "express";
 import type { AuthRequest } from "../../middlewares/authMiddleware.js";
 import { cicloService } from "../../services/ciclo/cicloServices.js";
+import { prisma } from "../../lib/prisma.js";
 
 export const cicloController = {
   async create(req: AuthRequest, res: Response): Promise<Response> {
@@ -196,6 +197,28 @@ async update(req: AuthRequest, res: Response): Promise<Response> {
     }, req.user);
 
     return res.json(ciclo);
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message });
+  }
+},
+async consumos(req: Request, res: Response) {
+  try {
+    const cicloId = req.params.cicloId as string;
+    const data = await cicloService.getConsumos(cicloId);
+    return res.json(data);
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message });
+  }
+},
+
+async desbastes(req: Request, res: Response) {
+  try {
+    const cicloId = req.params.cicloId as string;
+    const desbastes = await prisma.desbaste.findMany({
+      where: { cicloId },
+      orderBy: { createdAt: 'desc' }
+    });
+    return res.json(desbastes);
   } catch (error: any) {
     return res.status(400).json({ message: error.message });
   }

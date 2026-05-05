@@ -530,4 +530,27 @@ async resumosAtivos(user: { tenantId: string; empresaId: string }) {
 
   return resultado; // { cicloId: animaisVivos }
 },
+async getConsumos(cicloId: string) {
+  const consumos = await prisma.consumoEstoque.findMany({
+    where: { referenciaId: cicloId, referenciaTipo: 'CICLO' },
+    include: {
+      lote: {
+        include: {
+          produto: { select: { nome: true, tipo: true, unidadeMedida: true } }
+        }
+      }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  return consumos.map(c => ({
+    id: c.id,
+    data: c.createdAt,
+    nomeProduto: c.lote.produto.nome,
+    tipo: c.lote.produto.tipo,
+    unidade: c.lote.produto.unidadeMedida,
+    quantidade: Number(c.quantidade),
+    custoTotal: Number(c.custoTotal),
+  }));
+},
 };
