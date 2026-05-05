@@ -339,9 +339,8 @@ const mediaRacaoDiaria = racaoUltimos2Dias > 0
       ? precoMedioKg  // usa preço real dos desbastes se tiver
       : Number(ciclo.precoEsperadoKg ?? 0); // senão usa o esperado
 
-
-  const lucroProjetado = biomassa > 0 && precoMedioKg > 0
-    ? biomassa * (precoMedioKg - custoPorKg)
+  const lucroProjetado = biomassa > 0 && precoReferencia > 0
+    ? biomassa * (precoReferencia - custoPorKg)
     : 0;
 
   return {
