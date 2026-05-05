@@ -80,7 +80,11 @@ model Fornecedor {
 
   @@index([empresaId])
 }
-
+enum UnitType {
+  WEIGHT
+  VOLUME
+  OTHER
+}
 model Produto {
   id            String      @id @default(uuid())
   tenantId      String
@@ -88,7 +92,8 @@ model Produto {
   nome          String
   tipo          ProdutoTipo
   unidadeMedida String
-
+  tipoUnidade   UnitType    @default(OTHER)
+  unidadeBase   String?     @default("g")// ex: "KG" para ração, "L" para insumo líquido
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?

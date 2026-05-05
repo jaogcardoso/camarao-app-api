@@ -4,7 +4,7 @@ import { estoqueService } from '../../services/estoque/estoqueServices.js';
 export const estoqueController = {
   async entrada(req: Request, res: Response) {
     try {
-      const { produtoId, fornecedorId, quantidade, valor } = req.body;
+      const { produtoId, fornecedorId, quantidade, unidadeDigitada, valor } = req.body;
 
       const tenantId = req.user.tenantId;
       const empresaId = req.user.empresaId;
@@ -13,6 +13,7 @@ export const estoqueController = {
         produtoId,
         fornecedorId,
         quantidade: Number(quantidade),
+        unidadeDigitada: unidadeDigitada ?? 'g',
         valor: Number(valor),
         tenantId,
         empresaId,
@@ -20,24 +21,19 @@ export const estoqueController = {
 
       return res.status(201).json(result);
     } catch (error: any) {
-      return res.status(400).json({
-        message: error.message,
-      });
+      return res.status(400).json({ message: error.message });
     }
   },
+
   async resumo(req: Request, res: Response) {
-  try {
-    const tenantId = req.user.tenantId;
-    const empresaId = req.user.empresaId;
+    try {
+      const tenantId = req.user.tenantId;
+      const empresaId = req.user.empresaId;
 
-    const data = await estoqueService.resumoEstoque({
-      tenantId,
-      empresaId,
-    });
-
-    return res.json(data);
-  } catch (error: any) {
-    return res.status(400).json({ message: error.message });
+      const data = await estoqueService.resumoEstoque({ tenantId, empresaId });
+      return res.json(data);
+    } catch (error: any) {
+      return res.status(400).json({ message: error.message });
+    }
   }
-}
 };

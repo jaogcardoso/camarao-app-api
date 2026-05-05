@@ -1,11 +1,13 @@
 import { prisma } from '../../lib/prisma.js';
 import { loteService } from '../lote/loteServices.js';
+import { paraBase } from '../../utils/unidade.js';
 
 export const estoqueService = {
   async entrada({
     produtoId,
     fornecedorId,
     quantidade,
+    unidadeDigitada,
     valor,
     tenantId,
     empresaId,
@@ -13,11 +15,11 @@ export const estoqueService = {
     produtoId: string;
     fornecedorId: string;
     quantidade: number;
+    unidadeDigitada: string;
     valor: number;
     tenantId: string;
     empresaId: string;
   }) {
-
     if (!quantidade || quantidade <= 0) {
       throw new Error('Quantidade inválida');
     }
@@ -26,32 +28,33 @@ export const estoqueService = {
       throw new Error('Valor inválido');
     }
 
-    // 🔥 calcula automaticamente
-    const custoUnitario = valor / quantidade;
+    // Converte para unidade base (g ou ml)
+    const quantidadeBase = paraBase(quantidade, unidadeDigitada);
+    const custoUnitario = valor / quantidadeBase;
 
-    // 🔥 usa o loteService (reaproveita sua lógica)
     return loteService.criarLote({
       produtoId,
       fornecedorId,
-      quantidadeInicial: quantidade,
+      quantidadeInicial: quantidadeBase,
       custoUnitario,
       tenantId,
       empresaId,
     });
   },
-  async resumoEstoque({ tenantId, empresaId }: any) {
-  const resultado = await prisma.loteEstoque.groupBy({
-    by: ['produtoId'],
-    where: {
-      tenantId,
-      empresaId,
-      deletedAt: null,
-    },
-    _sum: {
-      quantidadeRestante: true,
-    },
-  });
 
-  return resultado;
-}
+  async resumoEstoque({ tenantId, empresaId }: any) {
+    const resultado = await prisma.loteEstoque.groupBy({
+      by: ['produtoId'],
+      where: {
+        tenantId,
+        empresaId,
+        deletedAt: null,
+      },
+      _sum: {
+        quantidadeRestante: true,
+      },
+    });
+
+    return resultado;
+  }
 };
