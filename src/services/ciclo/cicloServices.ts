@@ -285,26 +285,22 @@ async resumoCiclo(cicloId: string) {
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
 
-  // Janela: últimos 3 dias completos (exclui hoje)
-  const tresDiasAtras = new Date(hoje.getTime() - 3 * 24 * 60 * 60 * 1000);
+const doisDiasAtras = new Date(hoje.getTime() - 2 * 24 * 60 * 60 * 1000);
 
-  const consumosUltimos3Dias = consumosRacao.filter(c => {
-    const data = new Date(c.createdAt);
-    return data >= tresDiasAtras && data < hoje;
-  });
+const consumosUltimos2Dias = consumosRacao.filter(c => {
+  const data = new Date(c.createdAt);
+  return data >= doisDiasAtras && data < hoje;
+});
 
-  const racaoUltimos3Dias = consumosUltimos3Dias.reduce(
-    (acc, c) => acc + Number(c.quantidade), 0
-  );
+const racaoUltimos2Dias = consumosUltimos2Dias.reduce(
+  (acc, c) => acc + Number(c.quantidade), 0
+);
 
-  // Quantos dias completos temos disponíveis (máx 3, mín 1)
-  const diasCompletosDisponiveis = Math.min(3, Math.max(1, diasDoCiclo - 1));
+const diasCompletosDisponiveis = Math.min(2, Math.max(1, diasDoCiclo - 1));
 
-  // Média diária dos últimos 3 dias completos
-  // Fallback para ciclos com menos de 1 dia: usa total / dias
-  const mediaRacaoDiaria = racaoUltimos3Dias > 0
-    ? racaoUltimos3Dias / diasCompletosDisponiveis
-    : totalRacaoKg / Math.max(1, diasDoCiclo);
+const mediaRacaoDiaria = racaoUltimos2Dias > 0
+  ? racaoUltimos2Dias / diasCompletosDisponiveis
+  : totalRacaoKg / Math.max(1, diasDoCiclo);
 
   const biomassaEstimadaRacao = mediaRacaoDiaria / TAXA_ALIMENTACAO;
 
