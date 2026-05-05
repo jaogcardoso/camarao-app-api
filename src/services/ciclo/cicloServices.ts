@@ -278,14 +278,38 @@ async resumoCiclo(cicloId: string) {
   const dataFim = ciclo.dataFim ? new Date(ciclo.dataFim).getTime() : Date.now();
   const diasDoCiclo = Math.max(1, Math.floor((dataFim - dataInicio) / (1000 * 60 * 60 * 24)));
 
-  // ── Biomassa estimada pelo consumo de ração (3% do peso corporal/dia) ──
+  // ── Biomassa estimada pela média dos últimos 3 dias completos ──
   const TAXA_ALIMENTACAO = 0.03;
-  const biomassaEstimadaRacao = totalRacaoKg > 0 && diasDoCiclo > 0
-    ? totalRacaoKg / diasDoCiclo / TAXA_ALIMENTACAO
-    : 0;
 
-  // Usa biomassa por ração se tiver dados de ração e biometria
-  // Caso contrário usa populacaoInicial * pesoMedio como fallback
+  // Início de hoje (meia-noite no horário do servidor)
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  // Janela: últimos 3 dias completos (exclui hoje)
+  const tresDiasAtras = new Date(hoje.getTime() - 3 * 24 * 60 * 60 * 1000);
+
+  const consumosUltimos3Dias = consumosRacao.filter(c => {
+    const data = new Date(c.createdAt);
+    return data >= tresDiasAtras && data < hoje;
+  });
+
+  const racaoUltimos3Dias = consumosUltimos3Dias.reduce(
+    (acc, c) => acc + Number(c.quantidade), 0
+  );
+
+  // Quantos dias completos temos disponíveis (máx 3, mín 1)
+  const diasCompletosDisponiveis = Math.min(3, Math.max(1, diasDoCiclo - 1));
+
+  // Média diária dos últimos 3 dias completos
+  // Fallback para ciclos com menos de 1 dia: usa total / dias
+  const mediaRacaoDiaria = racaoUltimos3Dias > 0
+    ? racaoUltimos3Dias / diasCompletosDisponiveis
+    : totalRacaoKg / Math.max(1, diasDoCiclo);
+
+  const biomassaEstimadaRacao = mediaRacaoDiaria / TAXA_ALIMENTACAO;
+
+  // Usa biomassa por ração se tiver dados suficientes e biometria
+  // Fallback: populacaoInicial * pesoMedio
   const biomassa = biomassaEstimadaRacao > 0 && pesoMedioAtual > 0
     ? biomassaEstimadaRacao
     : (ciclo.quantidadeLarvas * pesoMedioAtual) / 1000;
@@ -338,6 +362,7 @@ async resumoCiclo(cicloId: string) {
     fcr,
     diasDoCiclo,
     biomassaEstimadaRacao,
+    mediaRacaoDiaria,
 
     sobrevivencia,
     animaisVivos,
