@@ -22,8 +22,7 @@ export const consumoService = {
     });
 
     // Converte para unidade base se necessário
-    const unidadeDigitada = data.unidadeDigitada ?? produto?.unidadeMedida ?? 'g';
-    const quantidadeBase = paraBase(data.quantidade, unidadeDigitada);
+    const quantidadeBase = data.quantidade;
 
     const lotes = await loteRepository.findDisponiveisFIFO(data.produtoId);
 
