@@ -280,4 +280,15 @@ async deletarEvento(req: AuthRequest, res: Response): Promise<Response> {
     return res.status(400).json({ message: error.message });
   }
 },
+
+async editarEvento(req: AuthRequest, res: Response): Promise<Response> {
+  try {
+    if (!req.user) return res.status(401).json({ message: "Usuário não autenticado" });
+    const { cicloId, eventoId } = req.params;
+    const resultado = await cicloService.editarEvento(cicloId as string, eventoId as string, req.body, req.user);
+    return res.json(resultado);
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message });
+  }
+},
 };

@@ -542,4 +542,123 @@ async getConsumos(cicloId: string) {
     custoTotal: Number(c.custoTotal),
   }));
 },
+async editarEvento(
+  cicloId: string,
+  eventoId: string,
+  data: any,
+  user: { tenantId: string; empresaId: string }
+) {
+  const registro = await prisma.registroDiario.findUnique({
+    where: { id: eventoId }
+  });
+
+  if (!registro) throw new Error('Evento não encontrado');
+
+  const detalhes = registro.detalhes as Record<string, any>;
+
+  if (registro.tipo === 'BIOMETRIA') {
+    const { pesoMedioGramas } = data;
+    return prisma.registroDiario.update({
+      where: { id: eventoId },
+      data: {
+        detalhes: {
+          ...detalhes,
+          pesoMedioGramas: Number(pesoMedioGramas),
+          quantidade: Number(pesoMedioGramas),
+          descricao: `Biometria: ${pesoMedioGramas}g de peso médio`,
+        }
+      }
+    });
+  }
+
+  if (registro.tipo === 'ALIMENTACAO' || registro.tipo === 'USO_INSUMO') {
+    const { quantidade, unidadeDigitada } = data;
+    const produtoId = detalhes?.produtoId;
+
+    // Busca produto para pegar unidade base
+    const produto = await prisma.produto.findUnique({
+      where: { id: produtoId },
+      select: { nome: true, unidadeMedida: true }
+    });
+
+    // Calcula nova quantidade na unidade do produto
+    const { paraBase } = await import('../../utils/unidade.js');
+    const novaQuantidade = unidadeDigitada && unidadeDigitada !== produto?.unidadeMedida
+      ? paraBase(Number(quantidade), unidadeDigitada) / (paraBase(1, produto?.unidadeMedida ?? 'kg'))
+      : Number(quantidade);
+
+    // Busca consumo vinculado
+    const consumo = await prisma.consumoEstoque.findFirst({
+      where: {
+        referenciaId: cicloId,
+        referenciaTipo: 'CICLO',
+        lote: { produto: { id: produtoId } },
+      },
+      include: { lote: true },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (consumo) {
+      const diff = novaQuantidade - Number(consumo.quantidade);
+      // Atualiza lote
+      await prisma.loteEstoque.update({
+        where: { id: consumo.loteId },
+        data: { quantidadeRestante: { decrement: diff } }
+      });
+      // Atualiza consumo
+      await prisma.consumoEstoque.update({
+        where: { id: consumo.id },
+        data: {
+          quantidade: novaQuantidade,
+          custoTotal: new (await import('@prisma/client')).Prisma.Decimal(novaQuantidade).mul(consumo.custoUnitario)
+        }
+      });
+    }
+
+    return prisma.registroDiario.update({
+      where: { id: eventoId },
+      data: {
+        detalhes: {
+          ...detalhes,
+          quantidade: novaQuantidade,
+          unidade: produto?.unidadeMedida,
+          descricao: `${produto?.nome ?? 'Produto'}: ${novaQuantidade} ${produto?.unidadeMedida ?? ''}`,
+        }
+      }
+    });
+  }
+
+  if (registro.tipo === 'DESPESCA_PARCIAL') {
+    const { pesoTotalKg, pesoMedioGramas, valorKg, observacao } = data;
+    const valorTotal = Number(pesoTotalKg) * Number(valorKg);
+    const quantidadeEstimado = Math.round((Number(pesoTotalKg) * 1000) / Number(pesoMedioGramas));
+
+    // Atualiza o desbaste
+    await prisma.desbaste.updateMany({
+      where: { cicloId, createdAt: registro.createdAt },
+      data: {
+        pesoTotalKg: Number(pesoTotalKg),
+        pesoMedioGramas: Number(pesoMedioGramas),
+        valorKg: Number(valorKg),
+        valorTotal,
+        quantidadeEstimado,
+        observacao: observacao ?? null,
+      }
+    });
+
+    return prisma.registroDiario.update({
+      where: { id: eventoId },
+      data: {
+        detalhes: {
+          ...detalhes,
+          quantidade: Number(pesoTotalKg),
+          descricao: `Desbaste: ${pesoTotalKg}kg · ${pesoMedioGramas}g médio · R$${valorKg}/kg`,
+          observacao,
+        }
+      }
+    });
+  }
+
+  throw new Error('Tipo de evento não suportado para edição');
+},
 };

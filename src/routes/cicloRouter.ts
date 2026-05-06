@@ -17,6 +17,7 @@ router.get('/:cicloId/consumos', authMiddleware, cicloController.consumos);
 router.get('/:cicloId/desbastes', authMiddleware, cicloController.desbastes);
 router.post('/:cicloId/biometria', authMiddleware, cicloController.biometria);
 router.post('/:cicloId/despesca', authMiddleware, cicloController.despesca);
+router.patch('/:cicloId/eventos/:eventoId', authMiddleware, cicloController.editarEvento);
 router.delete('/:cicloId/eventos/:eventoId', authMiddleware, cicloController.deletarEvento);
 
 
