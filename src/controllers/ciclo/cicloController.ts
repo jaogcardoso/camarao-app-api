@@ -223,4 +223,61 @@ async desbastes(req: Request, res: Response) {
     return res.status(400).json({ message: error.message });
   }
 },
+async deletarEvento(req: AuthRequest, res: Response): Promise<Response> {
+  try {
+    if (!req.user) return res.status(401).json({ message: "Usuário não autenticado" });
+
+    const cicloId = req.params.cicloId as string;
+    const eventoId = req.params.eventoId as string;
+
+    // Busca o registro
+    const registro = await prisma.registroDiario.findUnique({
+      where: { id: eventoId }
+    });
+
+    if (!registro) return res.status(404).json({ message: "Evento não encontrado" });
+
+    // Se for consumo, estorna o estoque
+    if (registro.tipo === 'ALIMENTACAO' || registro.tipo === 'USO_INSUMO') {
+      const detalhes = registro.detalhes as Record<string, any>;
+      const produtoId = detalhes?.produtoId;
+
+      if (produtoId) {
+        // Busca o consumo vinculado
+        const consumos = await prisma.consumoEstoque.findMany({
+          where: { referenciaId: cicloId, referenciaTipo: 'CICLO' },
+          include: { lote: { include: { produto: true } } },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        // Encontra o consumo mais próximo do registro
+        const consumo = consumos.find(c =>
+          c.lote.produto.id === produtoId &&
+          Math.abs(new Date(c.createdAt).getTime() - new Date(registro.createdAt).getTime()) < 60000
+        );
+
+        if (consumo) {
+          // Devolve ao lote
+          await prisma.loteEstoque.update({
+            where: { id: consumo.loteId },
+            data: {
+              quantidadeRestante: {
+                increment: consumo.quantidade
+              }
+            }
+          });
+          // Remove o consumo
+          await prisma.consumoEstoque.delete({ where: { id: consumo.id } });
+        }
+      }
+    }
+
+    // Remove o registro do diário
+    await prisma.registroDiario.delete({ where: { id: eventoId } });
+
+    return res.json({ message: "Evento removido com sucesso" });
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message });
+  }
+},
 };

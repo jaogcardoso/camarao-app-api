@@ -17,6 +17,7 @@ router.get('/:cicloId/consumos', authMiddleware, cicloController.consumos);
 router.get('/:cicloId/desbastes', authMiddleware, cicloController.desbastes);
 router.post('/:cicloId/biometria', authMiddleware, cicloController.biometria);
 router.post('/:cicloId/despesca', authMiddleware, cicloController.despesca);
+router.delete('/:cicloId/eventos/:eventoId', authMiddleware, cicloController.deletarEvento);
 
 
 export const cicloRoutes = router;
