@@ -58,7 +58,7 @@ export const estoqueService = {
     return resultado;
   },
 
-  async historicoEntradas({ tenantId, empresaId }: any) {
+async historicoEntradas({ tenantId, empresaId }: any) {
   const lotes = await prisma.loteEstoque.findMany({
     where: { tenantId, empresaId, deletedAt: null },
     include: {
