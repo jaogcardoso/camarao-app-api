@@ -42,11 +42,21 @@ export const produtoService = {
 },
 
 async deletarProduto(id: string) {
-
   const produto = await produtoRepository.findById(id);
+  if (!produto) throw new Error("Produto não encontrado");
 
-  if (!produto) {
-    throw new Error("Produto não encontrado");
+  // Verifica se tem estoque ativo
+  const { prisma } = await import('../../lib/prisma.js');
+  const estoqueAtivo = await prisma.loteEstoque.findFirst({
+    where: {
+      produtoId: id,
+      deletedAt: null,
+      quantidadeRestante: { gt: 0 }
+    }
+  });
+
+  if (estoqueAtivo) {
+    throw new Error("Não é possível excluir um produto com estoque disponível. Zere o estoque antes de excluir.");
   }
 
   return produtoRepository.softDelete(id);
