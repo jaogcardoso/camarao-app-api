@@ -93,7 +93,8 @@ model Produto {
   tipo          ProdutoTipo
   unidadeMedida String
   tipoUnidade   UnitType    @default(OTHER)
-  unidadeBase   String?     @default("g")// ex: "KG" para ração, "L" para insumo líquido
+  unidadeBase   String?     @default("g")
+  estoqueMinimo Decimal? @default(0)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?

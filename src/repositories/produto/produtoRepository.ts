@@ -8,6 +8,7 @@ export const produtoRepository = {
   nome: string
   tipo: 'RACAO' | 'INSUMO'
   unidadeMedida: string
+  estoqueMinimo?: number
 }) {
   const { tenantId, empresaId } = getContext();
 
@@ -16,17 +17,11 @@ export const produtoRepository = {
       nome: data.nome,
       tipo: data.tipo,
       unidadeMedida: data.unidadeMedida,
-
-      tenant: {
-        connect: { id: tenantId! }
-      },
-
-      empresa: {
-        connect: { id: empresaId! }
-      }
+      estoqueMinimo: data.estoqueMinimo ?? 0,
+      tenant: { connect: { id: tenantId! } },
+      empresa: { connect: { id: empresaId! } }
     }
   });
-
 },
 
   async findByName(nome: string) {
@@ -82,19 +77,16 @@ async findById(id: string) {
 
 },
 
-  async update(id: string, data: {
+async update(id: string, data: {
   nome?: string
   tipo?: 'RACAO' | 'INSUMO'
   unidadeMedida?: string
+  estoqueMinimo?: number
 }) {
-
-  const { tenantId, empresaId } = getContext();
-
   return prisma.produto.update({
     where: { id },
     data,
   });
-
 },
 async softDelete(id: string) {
 
