@@ -10,6 +10,7 @@ import { loteRoutes } from "./routes/loteRouter.js";
 import { consumoRoutes } from "./routes/consumoRouter.js";
 import desbasteRoutes from "./routes/desbasteRouter.js";
 import { estoqueRoutes } from "./routes/estoqueRouter.js";
+import { adminRoutes } from "./routes/adminRouter.js";
 
 
 const app = express();
@@ -26,6 +27,7 @@ app.use(cors({
 
 app.use(express.json());
 app.use(contextMiddleware); 
+app.use(adminRoutes);
 
 app.use(userRoutes);
 app.use("/viveiros", viveiroRoutes);
