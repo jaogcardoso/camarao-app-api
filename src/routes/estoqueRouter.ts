@@ -6,3 +6,4 @@ export const estoqueRoutes = Router();
 
 estoqueRoutes.post('/entrada', authMiddleware, estoqueController.entrada);
 estoqueRoutes.get('/resumo', authMiddleware, estoqueController.resumo);
+estoqueRoutes.delete('/lote/:loteId', authMiddleware, estoqueController.deletarLote);

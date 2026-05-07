@@ -35,5 +35,42 @@ export const estoqueController = {
     } catch (error: any) {
       return res.status(400).json({ message: error.message });
     }
+  },
+
+  async historico(req: Request, res: Response) {
+  try {
+    const tenantId = req.user.tenantId;
+    const empresaId = req.user.empresaId;
+    const data = await estoqueService.historicoEntradas({ tenantId, empresaId });
+    return res.json(data);
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message });
   }
+},
+
+async editarLote(req: Request, res: Response) {
+  try {
+    const { loteId } = req.params;
+    const { quantidade, valor } = req.body;
+    const data = await estoqueService.editarLote(loteId as string, {
+      quantidade: Number(quantidade),
+      valor: Number(valor),
+    });
+    return res.json(data);
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message });
+  }
+},
+
+async deletarLote(req: Request, res: Response) {
+  try {
+    const { loteId } = req.params;
+    const tenantId = req.user.tenantId;
+    const empresaId = req.user.empresaId;
+    await estoqueService.deletarLote(loteId as string, { tenantId, empresaId });
+    return res.json({ message: 'Lote removido com sucesso' });
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message });
+  }
+},
 };
